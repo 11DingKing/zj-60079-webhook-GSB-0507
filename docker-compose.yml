@@ -15,6 +15,11 @@ services:
       - postgres_data:/var/lib/postgresql/data
     networks:
       - webhook-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U dev -d db_zj_60079"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
 
   redis:
     image: redis:7-alpine
@@ -27,6 +32,31 @@ services:
     networks:
       - webhook-network
     command: redis-server --appendonly yes
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  app:
+    build: .
+    container_name: webhook-app
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: "postgresql://dev:dev123456@postgres:5432/db_zj_60079?schema=public"
+      REDIS_URL: "redis://redis:6379"
+      NODE_ENV: "production"
+      PORT: 3000
+    ports:
+      - "3000:3000"
+    networks:
+      - webhook-network
+    command: sh -c "npx prisma migrate deploy && npm run start"
 
 volumes:
   postgres_data:

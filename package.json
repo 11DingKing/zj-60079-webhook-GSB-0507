@@ -10,9 +10,18 @@
     "prisma:generate": "prisma generate",
     "prisma:migrate": "prisma migrate dev",
     "prisma:studio": "prisma studio",
-    "prisma:seed": "tsx prisma/seed.ts"
+    "prisma:seed": "tsx prisma/seed.ts",
+    "test": "jest",
+    "test:coverage": "jest --coverage"
   },
-  "keywords": ["webhook", "express", "typescript", "prisma", "postgresql", "redis"],
+  "keywords": [
+    "webhook",
+    "express",
+    "typescript",
+    "prisma",
+    "postgresql",
+    "redis"
+  ],
   "author": "",
   "license": "MIT",
   "dependencies": {
@@ -32,11 +41,15 @@
   "devDependencies": {
     "@types/cors": "^2.8.17",
     "@types/express": "^4.17.21",
+    "@types/jest": "^30.0.0",
     "@types/node": "^20.11.0",
     "@types/swagger-jsdoc": "^6.0.4",
     "@types/swagger-ui-express": "^4.1.6",
     "@types/uuid": "^9.0.0",
+    "jest": "^30.3.0",
     "prisma": "^5.10.0",
+    "ts-jest": "^29.4.9",
+    "ts-node": "^10.9.2",
     "tsx": "^4.7.0",
     "typescript": "^5.3.0"
   }
