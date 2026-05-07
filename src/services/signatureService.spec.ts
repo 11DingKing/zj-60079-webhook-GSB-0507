@@ -90,7 +90,7 @@ describe('SignatureService', () => {
       expect(result.isValid).toBe(true);
     });
 
-    it('should detect replay attacks via timestamp-based verification (expired timestamp)', () => {
+    it('should note: timestamp expiry validation is not yet implemented in SignatureService', () => {
       const windowMs = 5 * 60 * 1000;
       const expiredTimestamp = Date.now() - windowMs - 1000;
       const payloadWithTimestamp = Buffer.from(
@@ -102,9 +102,6 @@ describe('SignatureService', () => {
         SignatureAlgorithm.HMAC_SHA256,
       );
       const header = `sha256=${computed}`;
-      const age = Date.now() - expiredTimestamp;
-      expect(age > windowMs).toBe(true);
-
       const result = SignatureService.verifySignature(
         payloadWithTimestamp,
         header,
@@ -112,19 +109,16 @@ describe('SignatureService', () => {
         SignatureAlgorithm.HMAC_SHA256,
       );
       expect(result.isValid).toBe(true);
-
-      const replayBody = Buffer.from(
-        JSON.stringify({ timestamp: expiredTimestamp, body: rawBody.toString() })
-      );
-      const replayResult = SignatureService.verifySignature(
-        replayBody,
-        header,
-        secret,
-        SignatureAlgorithm.HMAC_SHA256,
-      );
-      expect(replayResult.isValid).toBe(true);
-
       expect(expiredTimestamp).toBeLessThan(Date.now() - windowMs);
+    });
+
+    it('should reject same-length but character-different signatures (secureCompare XOR path)', () => {
+      const computed = SignatureService.computeSignature(rawBody, secret, SignatureAlgorithm.HMAC_SHA256);
+      const tampered = computed.slice(0, -2) + (computed.charCodeAt(computed.length - 1) === 0x61 ? '62' : '61');
+      const header = `sha256=${tampered}`;
+      const result = SignatureService.verifySignature(rawBody, header, secret, SignatureAlgorithm.HMAC_SHA256);
+      expect(result.isValid).toBe(false);
+      expect(result.error).toContain('Signature mismatch');
     });
 
     it('should reject replayed signature with different payload (replay attack interception)', () => {
