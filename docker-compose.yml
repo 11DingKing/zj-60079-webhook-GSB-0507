@@ -1,5 +1,3 @@
-version: '3.8'
-
 services:
   postgres:
     image: postgres:16-alpine
@@ -15,6 +13,24 @@ services:
       - postgres_data:/var/lib/postgresql/data
     networks:
       - webhook-network
+
+  app:
+    build: .
+    container_name: webhook-app
+    restart: unless-stopped
+    ports:
+      - "13079:13079"
+    environment:
+      DATABASE_URL: postgresql://dev:dev123456@postgres:5432/db_zj_60079
+      REDIS_URL: redis://redis:6379
+      NODE_ENV: production
+    depends_on:
+      - postgres
+      - redis
+    networks:
+      - webhook-network
+    command: >
+      sh -c "npx prisma migrate deploy && npm start"
 
   redis:
     image: redis:7-alpine
