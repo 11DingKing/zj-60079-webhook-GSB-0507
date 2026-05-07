@@ -1,0 +1,96 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum SignatureAlgorithm {
+  HMAC_SHA256
+  HMAC_SHA1
+}
+
+enum ForwardingStatus {
+  SUCCESS
+  FAILED
+  TIMEOUT
+  PENDING
+}
+
+enum EventValidationStatus {
+  VALID
+  INVALID
+  SKIPPED
+}
+
+model WebhookEndpoint {
+  id             String              @id @default(uuid())
+  endpointPath   String              @unique
+  name           String
+  description    String?
+  httpMethods    String              @default("POST")
+  signatureKey   String?
+  signatureAlgorithm SignatureAlgorithm?
+  signatureHeader String            @default("X-Hub-Signature-256")
+  isEnabled      Boolean             @default(true)
+  rateLimitPerMinute Int             @default(60)
+  createdAt      DateTime            @default(now())
+  updatedAt      DateTime            @updatedAt
+  forwardingRules ForwardingRule[]
+  events         WebhookEvent[]
+}
+
+model ForwardingRule {
+  id              String           @id @default(uuid())
+  endpointId      String
+  name            String
+  description     String?
+  targetUrl       String
+  condition       String?
+  headers         Json             @default("{}")
+  bodyTemplate    String?
+  timeout         Int              @default(10000)
+  maxRetries      Int              @default(3)
+  isEnabled       Boolean          @default(true)
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+  endpoint        WebhookEndpoint  @relation(fields: [endpointId], references: [id], onDelete: Cascade)
+  forwardingLogs  ForwardingLog[]
+}
+
+model WebhookEvent {
+  id                String                 @id @default(uuid())
+  endpointId        String
+  requestMethod     String
+  requestPath       String
+  requestHeaders    Json                   @default("{}")
+  requestQuery      Json                   @default("{}")
+  requestBody       Json                   @default("{}")
+  requestRawBody    String?
+  requestIp         String?
+  userAgent         String?
+  validationStatus  EventValidationStatus  @default(SKIPPED)
+  validationError   String?
+  isRateLimited     Boolean                @default(false)
+  receivedAt        DateTime               @default(now())
+  endpoint          WebhookEndpoint        @relation(fields: [endpointId], references: [id], onDelete: Cascade)
+  forwardingLogs    ForwardingLog[]
+}
+
+model ForwardingLog {
+  id              String            @id @default(uuid())
+  eventId         String
+  ruleId          String
+  status          ForwardingStatus  @default(PENDING)
+  responseStatus  Int?
+  responseHeaders Json?
+  responseBody    String?
+  errorMessage    String?
+  attemptNumber   Int               @default(1)
+  durationMs      Int?
+  executedAt      DateTime?
+  event           WebhookEvent      @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  rule            ForwardingRule    @relation(fields: [ruleId], references: [id], onDelete: Cascade)
+}
